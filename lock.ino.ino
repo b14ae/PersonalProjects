@@ -29,7 +29,7 @@ char keys[KEYPAD_ROWS][KEYPAD_COLS] = {
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, KEYPAD_ROWS, KEYPAD_COLS);
 
-/* SafeState stores the secret code in EEPROM */
+/* SafeState stores the secret code */
 SafeState safeState;
 
 void lock() {
@@ -43,19 +43,19 @@ void unlock() {
 
 void showStartupMessage() {
   lcd.setCursor(4, 0);
-  lcd.print("Welcome!");
+  lcd.print("Hello!");
   delay(1000);
 
   lcd.setCursor(0, 2);
-  String message = "ArduinoSafe v1.0";
+  String message = "Arduino Lock";
   for (byte i = 0; i < message.length(); i++) {
     lcd.print(message[i]);
-    delay(100);
+    delay(150);
   }
-  delay(500);
+  delay(1000);
 }
 
-String inputSecretCode() {
+String inputCode() {
   lcd.setCursor(5, 1);
   lcd.print("[____]");
   lcd.setCursor(6, 1);
@@ -84,12 +84,12 @@ bool setNewCode() {
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Enter new code:");
-  String newCode = inputSecretCode();
+  String newCode = inputCode();
 
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Confirm new code");
-  String confirmCode = inputSecretCode();
+  String confirmCode = inputCode();
 
   if (newCode.equals(confirmCode)) {
     safeState.setCode(newCode);
@@ -97,7 +97,7 @@ bool setNewCode() {
   } else {
     lcd.clear();
     lcd.setCursor(1, 0);
-    lcd.print("Code mismatch");
+    lcd.print("Code Mismatched");
     lcd.setCursor(0, 1);
     lcd.print("Safe not locked!");
     delay(2000);
@@ -166,7 +166,7 @@ void safeLockedLogic() {
   lcd.print(" Safe Locked! ");
   lcd.write(ICON_LOCKED_CHAR);
 
-  String userCode = inputSecretCode();
+  String userCode = inputCode();
   bool unlockedSuccessfully = safeState.unlock(userCode);
   showWaitScreen(200);
 
@@ -176,7 +176,7 @@ void safeLockedLogic() {
   } else {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Access Denied!");
+    lcd.print("Wrong Code!");
     showWaitScreen(1000);
   }
 }
