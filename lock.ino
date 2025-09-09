@@ -1,5 +1,4 @@
 
-
 #include <LiquidCrystal.h>
 #include <Keypad.h>
 #include <Servo.h>
@@ -11,6 +10,11 @@
 #define SERVO_LOCK_POS   20
 #define SERVO_UNLOCK_POS 90
 Servo lockServo;
+
+#define BUZZER_PIN A4
+#define RED_LED    A5
+#define GREEN_LED  13
+
 
 /* Display */
 LiquidCrystal lcd(12, 11, 10, 9, 8, 7);
@@ -29,33 +33,41 @@ char keys[KEYPAD_ROWS][KEYPAD_COLS] = {
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, KEYPAD_ROWS, KEYPAD_COLS);
 
-/* SafeState stores the secret code */
+/* SafeState stores the secret code in EEPROM */
 SafeState safeState;
 
-void lock() {
+void lock() 
+{
   lockServo.write(SERVO_LOCK_POS);
   safeState.lock();
+  digitalWrite(RED_LED, HIGH);
+  digitalWrite(GREEN_LED, LOW);
 }
 
-void unlock() {
+void unlock() 
+{
   lockServo.write(SERVO_UNLOCK_POS);
+  digitalWrite(GREEN_LED, HIGH);
+  digitalWrite(RED_LED, LOW);
 }
 
-void showStartupMessage() {
+void showStartupMessage() 
+{
   lcd.setCursor(4, 0);
-  lcd.print("Hello!");
+  lcd.print("Welcome!");
   delay(1000);
 
   lcd.setCursor(0, 2);
-  String message = "Arduino Lock";
+  String message = "ArduinoSafe v1.0";
   for (byte i = 0; i < message.length(); i++) {
     lcd.print(message[i]);
-    delay(150);
+    delay(100);
   }
-  delay(1000);
+  delay(500);
 }
 
-String inputCode() {
+String inputSecretCode() 
+{
   lcd.setCursor(5, 1);
   lcd.print("[____]");
   lcd.setCursor(6, 1);
@@ -70,7 +82,8 @@ String inputCode() {
   return result;
 }
 
-void showWaitScreen(int delayMillis) {
+void showWaitScreen(int delayMillis) 
+{
   lcd.setCursor(2, 1);
   lcd.print("[..........]");
   lcd.setCursor(3, 1);
@@ -80,24 +93,26 @@ void showWaitScreen(int delayMillis) {
   }
 }
 
-bool setNewCode() {
+bool setNewCode() 
+{
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Enter new code:");
-  String newCode = inputCode();
+  String newCode = inputSecretCode();
 
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Confirm new code");
-  String confirmCode = inputCode();
+  String confirmCode = inputSecretCode();
 
-  if (newCode.equals(confirmCode)) {
+  if (newCode.equals(confirmCode)) 
+  {
     safeState.setCode(newCode);
     return true;
   } else {
     lcd.clear();
     lcd.setCursor(1, 0);
-    lcd.print("Code Mismatched");
+    lcd.print("Code mismatch");
     lcd.setCursor(0, 1);
     lcd.print("Safe not locked!");
     delay(2000);
@@ -105,7 +120,8 @@ bool setNewCode() {
   }
 }
 
-void showUnlockMessage() {
+void showUnlockMessage()
+{
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.write(ICON_UNLOCKED_CHAR);
@@ -116,7 +132,8 @@ void showUnlockMessage() {
   delay(1000);
 }
 
-void safeUnlockedLogic() {
+void safeUnlockedLogic() 
+{
   lcd.clear();
 
   lcd.setCursor(0, 0);
@@ -128,23 +145,27 @@ void safeUnlockedLogic() {
 
   bool newCodeNeeded = true;
 
-  if (safeState.hasCode()) {
+  if (safeState.hasCode()) 
+  {
     lcd.setCursor(0, 1);
     lcd.print("  A = new code");
     newCodeNeeded = false;
   }
 
   auto key = keypad.getKey();
-  while (key != 'A' && key != '#') {
+  while (key != 'A' && key != '#') 
+  {
     key = keypad.getKey();
   }
 
   bool readyToLock = true;
-  if (key == 'A' || newCodeNeeded) {
+  if (key == 'A' || newCodeNeeded) 
+  {
     readyToLock = setNewCode();
   }
 
-  if (readyToLock) {
+  if (readyToLock) 
+  {
     lcd.clear();
     lcd.setCursor(5, 0);
     lcd.write(ICON_UNLOCKED_CHAR);
@@ -159,29 +180,48 @@ void safeUnlockedLogic() {
   }
 }
 
-void safeLockedLogic() {
+void safeLockedLogic() 
+{
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.write(ICON_LOCKED_CHAR);
   lcd.print(" Safe Locked! ");
   lcd.write(ICON_LOCKED_CHAR);
 
-  String userCode = inputCode();
+  String userCode = inputSecretCode();
   bool unlockedSuccessfully = safeState.unlock(userCode);
   showWaitScreen(200);
 
-  if (unlockedSuccessfully) {
+  if (unlockedSuccessfully) 
+  {
     showUnlockMessage();
     unlock();
-  } else {
+  } 
+  else 
+  {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Wrong Code!");
+    lcd.print("Access Denied!");
+    // Wrong code → sound buzzer + red LED ON
+    tone(BUZZER_PIN, 400, 500); // 400 Hz for 0.5s
+    digitalWrite(RED_LED, HIGH);
+    digitalWrite(GREEN_LED, LOW);
+
     showWaitScreen(1000);
   }
 }
 
-void setup() {
+void setup() 
+{
+
+pinMode(BUZZER_PIN, OUTPUT);
+pinMode(RED_LED, OUTPUT);
+pinMode(GREEN_LED, OUTPUT);
+
+// Start with safe locked
+digitalWrite(RED_LED, HIGH);
+digitalWrite(GREEN_LED, LOW);
+
   lcd.begin(16, 2);
   init_icons(lcd);
 
