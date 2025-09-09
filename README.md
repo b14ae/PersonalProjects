@@ -3,4 +3,4 @@ I used a screen (LCD1602 Module), 4x4 keypad, servo motor, 10k potentiometer, bu
 The lock included an intreractive feature where the user can create their own code and provides feedback whether the code is right or wrong (with buzzer). 
 Depending on its state, the green LED shows that its unlocked, while the red LED shows that its locked.
 
-https://youtu.be/3hsppBFZZWs
+https://youtube.com/shorts/4vN4AVk1LGg?feature=share
